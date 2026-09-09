@@ -12,7 +12,7 @@ A WordPress-based NCLEX learning platform for managing courses, lessons, quizzes
 
 == Description ==
 
-Feuer Nursing Review is a WordPress plugin designed to provide a complete learning and assessment platform for NCLEX and Next Generation NCLEX (NGN) preparation.
+Feuer Nursing Review is a WordPress plugin designed to provide a learning and assessment platform for NCLEX and Next Generation NCLEX (NGN) preparation.
 
 The plugin provides structured course content, interactive assessments, student progress tracking, question management, scoring, rationales, and performance analytics.
 
@@ -68,7 +68,7 @@ The plugin also supports different assessment modes, including practice and simu
 
 = NGN Support =
 
-The plugin is designed to support Next Generation NCLEX assessments and case studies based on the Clinical Judgment Measurement Model.
+The plugin provides assessment functionality designed to support NCLEX and Next Generation NCLEX (NGN)-style practice activities, including case studies, clinical judgment exercises, and multiple scoring methods.
 
 NGN functionality includes:
 
@@ -79,7 +79,7 @@ NGN functionality includes:
 * Laboratory Results
 * History and Physical information
 * Sequential case study progression
-* NGN-specific scoring rules
+* NGN-style scoring methods
 
 = Student Progress =
 
@@ -120,13 +120,13 @@ The plugin requires WordPress 6.4 or later.
 
 PHP 8.1 or later is recommended.
 
-= Does the plugin support NGN questions? =
+= Does the plugin support NGN-style questions? =
 
-Yes. The plugin architecture is designed to support multiple Next Generation NCLEX question types and scoring methods.
+The plugin is designed to support multiple Next Generation NCLEX (NGN)-style question formats and scoring methods.
 
 = Does the plugin track student progress? =
 
-Yes. Student lesson completion, quiz attempts, scores, and question-level performance can be tracked.
+Yes. The plugin can track lesson completion, quiz attempts, scores, and question-level performance.
 
 = Does the plugin require WooCommerce? =
 
@@ -134,7 +134,7 @@ No. WooCommerce is an optional integration intended for selling course access.
 
 = Does the plugin require a separate LMS? =
 
-No. The plugin is designed to provide its own course and assessment functionality while also allowing integrations with existing LMS platforms.
+No. The plugin is designed to provide its own course and assessment functionality while also supporting integrations with existing LMS platforms.
 
 == Screenshots ==
 
@@ -149,6 +149,7 @@ No. The plugin is designed to provide its own course and assessment functionalit
 == Changelog ==
 
 = 0.1.0 =
+
 * Initial plugin architecture.
 * Added custom post type structure.
 * Added custom taxonomy structure.

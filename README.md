@@ -1,6 +1,6 @@
 # Feuer Nursing Review
 
-A comprehensive WordPress plugin built to power the Feuer Nursing Review learning platform. It provides course management, lesson delivery, NCLEX and Next Generation NCLEX (NGN) assessments, student progress tracking, performance analytics, and instructor reporting.
+A WordPress-based learning and assessment platform built for Feuer Nursing Review. The plugin is designed to provide course management, lesson delivery, NCLEX and Next Generation NCLEX (NGN)-style assessments, student progress tracking, performance analytics, and instructor reporting.
 
 ## Features
 
@@ -11,20 +11,26 @@ A comprehensive WordPress plugin built to power the Feuer Nursing Review learnin
 * Module and lesson organization
 * Content drip functionality
 * Student course access management
-* Support for Gutenberg-based content editing
+* Gutenberg-based content editing
 
 ### Quiz Engine
 
-* Multiple Choice questions
+The quiz engine is designed to support multiple assessment formats:
+
+* Multiple Choice
 * Select All That Apply (SATA)
-* Numeric calculation questions
-* Ordered response questions
-* Hotspot questions
+* Numeric Calculation
+* Ordered Response
+* Hotspot
 * Practice and simulated exam modes
 * Instant feedback and rationale display
 * Configurable time limits and passing scores
 
 ### Next Generation NCLEX (NGN)
+
+The plugin provides functionality for NGN-style practice activities, including interactive question formats, clinical judgment exercises, and unfolding case studies.
+
+Planned NGN functionality includes:
 
 * Matrix and grid questions
 * Drop-down Cloze questions
@@ -33,33 +39,43 @@ A comprehensive WordPress plugin built to power the Feuer Nursing Review learnin
 * Bow-Tie questions
 * Dyad and Triad items
 * Unfolding case studies
-* Support for the 6-step NCSBN Clinical Judgment Measurement Model (NCJMM)
+* Clinical information tabs
+* Sequential case study progression
+* NGN-style scoring methods
+* Case studies aligned with the Clinical Judgment Measurement Model
+
+> Feuer Nursing Review is an independent learning platform and is not affiliated with, endorsed by, or sponsored by the NCSBN.
 
 ### Scoring
 
-The plugin supports multiple scoring methods depending on the question type:
+The assessment engine is designed to support multiple scoring approaches depending on the question type:
 
-* **0/1 Scoring** — Full credit for correct answers
-* **Plus/Minus Scoring** — Correct selections add points while incorrect selections deduct points, with scores floored at zero
-* **Rationale Scoring** — Linked responses must meet the required criteria to receive points
+* **0/1 Scoring** — Awards full credit for a correct response.
+* **Plus/Minus Scoring** — Correct selections add points while incorrect selections deduct points, with the resulting score limited to a minimum of zero.
+* **Rationale-Based Scoring** — Applies scoring requirements to linked responses where applicable.
 
-### Student Progress
+These scoring methods are intended for practice and assessment functionality within the Feuer Nursing Review platform and do not represent the official NCLEX scoring algorithm.
 
-* Lesson completion tracking
-* Course progress monitoring
+## Student Progress
+
+The plugin is designed to track student learning and assessment activity, including:
+
+* Lesson completion
+* Course progress
 * Quiz attempt history
-* Time spent tracking
-* Question-level response logging
-* Performance tracking by NCLEX category
-* Access and drip availability tracking
+* Time spent
+* Question-level responses
+* Points earned
+* Performance by NCLEX category
+* Course access and drip availability
 
-### Analytics
+## Analytics
 
-#### Student Dashboard
+### Student Dashboard
 
-Students can view their learning progress and identify weak areas based on quiz and question performance.
+Students can view their learning progress and identify areas that may require additional study based on quiz and question performance.
 
-#### Instructor Dashboard
+### Instructor Dashboard
 
 Instructors can review aggregate student performance, including:
 
@@ -70,7 +86,7 @@ Instructors can review aggregate student performance, including:
 
 ## Content Structure
 
-The plugin uses the following custom post types:
+The plugin uses custom post types to organize learning content.
 
 | Post Type      | Description                     |
 | -------------- | ------------------------------- |
@@ -84,21 +100,21 @@ The plugin uses the following custom post types:
 * `fnr_subject`
 * `fnr_nclex_category`
 
-Example subjects include:
+Example subjects:
 
 * Fundamentals
 * Pharmacology
 * Medical-Surgical Nursing
 
-Example NCLEX categories include:
+Example NCLEX categories:
 
 * Management of Care
 * Safety and Infection Control
 * Pharmacological Therapies
 
-## Database Tables
+## Database Architecture
 
-The plugin uses dedicated database tables for high-frequency student activity and analytics.
+The plugin uses dedicated database tables for high-frequency student activity and assessment analytics.
 
 ```text
 {prefix}fnr_user_progress
@@ -106,7 +122,38 @@ The plugin uses dedicated database tables for high-frequency student activity an
 {prefix}fnr_question_logs
 ```
 
-Tables are created and updated using WordPress `dbDelta()` during plugin activation.
+Tables are created and maintained using WordPress `dbDelta()` during plugin activation and database updates.
+
+### User Progress
+
+Tracks information such as:
+
+* Lesson completion
+* Course progress
+* Module availability
+* Access dates
+
+### Quiz Attempts
+
+Stores assessment session data such as:
+
+* User ID
+* Quiz ID
+* Score
+* Total points
+* Time spent
+* Attempt status
+
+### Question Logs
+
+Stores question-level assessment data such as:
+
+* Attempt ID
+* Question ID
+* User response
+* Correctness
+* Points earned
+* Rationale interaction data
 
 ## User Roles
 
@@ -132,13 +179,13 @@ Students can:
 * Complete lessons
 * Take quizzes and assessments
 * Review rationales
-* Track their learning progress
+* Track learning progress
 
 ## REST API
 
-The plugin uses custom WordPress REST API endpoints for asynchronous functionality.
+The plugin uses custom WordPress REST API endpoints for asynchronous frontend functionality.
 
-Example namespace:
+API namespace:
 
 ```text
 /wp-json/fnr/v1/
@@ -160,16 +207,16 @@ Planned integrations include:
 
 * WooCommerce for course access and purchases
 * Easy Digital Downloads
-* LearnDash compatibility
-* LifterLMS compatibility
+* LearnDash integration hooks
+* LifterLMS integration hooks
 * Vimeo video embeds
 * YouTube video embeds
 
 ## Requirements
 
-* WordPress 6.x or later
+* WordPress 6.4 or later
 * PHP 8.1 or later
-* MySQL 8.0+ or MariaDB equivalent
+* MySQL 8.0+ or compatible MariaDB version
 * Modern browser with JavaScript enabled
 
 ## Installation
@@ -183,16 +230,17 @@ wp-content/plugins/feuer-nursing-review/
 
 3. Activate the plugin from **WordPress Admin → Plugins**.
 4. Plugin activation will register the required roles, capabilities, custom post types, and database tables.
-5. Configure the plugin settings from the Feuer Nursing Review admin menu.
+5. Configure the plugin settings from the Feuer Nursing Review admin area.
 
 ## Development
 
-### Suggested Structure
+### Suggested Project Structure
 
 ```text
 feuer-nursing-review/
 ├── feuer-nursing-review.php
-├── readme.md
+├── README.md
+├── readme.txt
 ├── uninstall.php
 ├── includes/
 │   ├── class-plugin.php
@@ -216,18 +264,20 @@ feuer-nursing-review/
 
 ## Accessibility
 
-Frontend and admin interfaces should follow WordPress accessibility best practices.
+Frontend and administrative interfaces should follow WordPress accessibility best practices.
 
-This includes:
+The plugin should provide:
 
 * Keyboard-accessible interactive components
 * Visible focus states
 * Proper form labels
 * Semantic HTML
 * ARIA attributes only when necessary
-* Accessible error and validation messages
+* Accessible validation and error messages
 * Screen reader announcements for dynamic quiz feedback
 * Support for `prefers-reduced-motion`
+
+Interactive quiz components should remain usable without relying exclusively on drag-and-drop or pointer interactions.
 
 ## Security
 
@@ -235,19 +285,21 @@ All plugin development should follow WordPress security best practices.
 
 This includes:
 
-* Sanitizing input
+* Sanitizing user input
 * Escaping output
 * Verifying nonces for administrative and user actions
-* Checking user capabilities before protected actions
+* Checking user capabilities before protected operations
 * Validating REST API permissions
-* Using prepared database queries where appropriate
-* Preventing unauthorized access to course and student data
+* Using prepared database queries
+* Protecting student and course data
+* Preventing unauthorized access to assessment results
+* Validating and authorizing all frontend state-changing requests
 
 ## Development Status
 
 This project is currently under active development.
 
-### Planned Development Phases
+### Development Roadmap
 
 * [ ] Plugin architecture and database setup
 * [ ] Custom post types and taxonomies
@@ -259,7 +311,7 @@ This project is currently under active development.
 * [ ] Question bank
 * [ ] Rationale engine
 * [ ] NGN question components
-* [ ] NGN scoring engine
+* [ ] NGN-style scoring engine
 * [ ] Unfolding case studies
 * [ ] Student analytics
 * [ ] Instructor analytics
