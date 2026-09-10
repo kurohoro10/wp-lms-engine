@@ -1,10 +1,16 @@
 <?php
+/**
+ * includes/API/RESTController.php
+ */
 namespace Feuernursingreview\API;
 
 use WP_REST_Controller;
 use WP_REST_Request;
 use WP_REST_Response;
 use Feuernursingreview\Scoring\NGNScorer;
+use Feuernursingreview\Database\QuestionLogsDB;
+use Feuernursingreview\Database\QuizAttemptsDB;
+use Feuernursingreview\CPT\QuestionCPT;
 
 if (!defined('ABSPATH')) exit;
 
@@ -29,49 +35,87 @@ class RESTController extends WP_REST_Controller {
 		$question_id = absint($request->get_param('question_id'));
 		$user_input  = $request->get_param('user_response'); // Array/JSON
 
-		// Retrieve stored question schema
+		if (empty($user_input['selections']) || !is_array($user_input['selections'])) {
+			return new WP_REST_Response(['error' => 'Missing or invalid user_response.selections'], 400);
+		}
+
+		// Matches the meta key QuestionCPT::register() registers via register_post_meta()
 		$schema_json = get_post_meta($question_id, '_fnr_question_schema', true);
 		if(!$schema_json) {
 			return new WP_REST_Response(['error' => 'Invalid question ID '], 404);
 		}
 
-		$schema 	  = json_decode($schema_json, true);
-		$scoring_rule = $schema['scoring_rule'];
-		$result 	  = [];
-
-		// Route scoring to corresponding NGN algorithm
-		if ($scoring_rule === 'plus_minus') {
-			$result = NGNScorer::score_plus_minus(
-				$user_input['selections'],
-				$schema['content']['correct_values'],
-				count($schema['content']['options'])
-			);
-		} elseif ($scoring_rule === 'zero_one') {
-			$result = NGNScorer::score_zero_one(
-				$user_input['selections'],
-				$schema['content']['correct_values']
-			);
+		$schema = json_decode($schema_json, true);
+		if (!$schema || empty($schema['scoring_rule'])) {
+			return new WP_REST_Response(['error' => 'Malformed question schema'], 500);
 		}
 
-		// Log result directly into custom $wpdb table
-		global $wpdb;
-		$wpdb->insert(
-			$wpdb->prefix . 'fnr_question_logs',
-			[
-				'attempt_id' 		 => $attempt_id,
-				'question_id' 		 => $question_id,
-				'user_id' 			 => get_current_user_id(),
-				'user_response_json' => wp_json_encode($user_input),
-				'points_earned' 	 => $result['points_earned'],
-				'points_possible' 	 => $result['max_points'],
-				'is_correct' 		 => $result['is_correct'] ? 1 : 0,
-			]
+		$result = $this->score($schema, $user_input);
+		if ($result === null) {
+			return new WP_REST_Response(['error' => 'Unsupported scoring_rule: ' . $schema['scoring_rule']], 500);
+		}
+
+		$log_id = QuestionLogsDB::log_response(
+			$attempt_id,
+			$question_id,
+			get_current_user_id(),
+			$user_input,
+			$result['points_earned'],
+			$result['max_points'],
+			$result['is_correct']
 		);
 
+		if (!$log_id) {
+			return new WP_REST_Response(['error' => 'Failed to log response'], 500);
+		}
+
+		// Keep the parent attempt's running total in sync as each question is scored
+		QuizAttemptsDB::recalculate_score($attempt_id);
+
 		return new WP_REST_Response([
-			'success' => true,
-			'result' => $result,
-			'rationale' => $schema['rationale'] // Render immediate feedback
+			'success' 	=> true,
+			'log_id' 	=> $log_id,
+			'result' 	=> $result,
+			'rationale' => $schema['rationale'] ?? null,
 		], 200);
+	}
+
+	/**
+	 * Route to the correct NGNScorer method based on the question's
+	 * scoring_rule. Returns null if the rule isn't recognized.
+	 */
+	private function score(array $schema, array $user_input): ?array {
+		$rule = $schema['scoring_rule'];
+		$content =$schema['content'] ?? [];
+
+		switch ($rule) {
+			case 'zero_one':
+				return NGNScorer::score_zero_one(
+					$user_input['selections'],
+					$content['correct_values'] ?? []
+				);
+
+			case 'plus_minus':
+				return NGNScorer::score_plus_minus(
+					$user_input['selections'],
+					$content['correct_values'] ?? [],
+					count($content['options'] ?? [])
+				);
+
+			case 'rationale':
+				/**
+				 * Dyad: expects user_input to carry cause/effect selections,
+				 * schema content to carry the correct pairing.
+				 */
+				return NGNScorer::score_rationale_dyad(
+					$user_input['cause'] ?? '',
+					$user_input['effect'] ?? '',
+					$content['correct_cause'] ?? '',
+					$content['correct_effect'] ?? ''
+				);
+
+			default:
+				return null;
+		}
 	}
 }

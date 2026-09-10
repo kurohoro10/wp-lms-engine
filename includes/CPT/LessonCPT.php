@@ -37,5 +37,14 @@ class LessonCPT {
 			'supports' 		  => ['title', 'editor', 'thumbnail', 'page-attributes', 'custom-fields'],
 			'capability_type' => 'post',
 		]);
+
+		register_post_meta(self::POST_TYPE, 'drip_days', [
+			'type' => 'integer',
+			'single' => true,
+			'default' => 0, // 0 = available immediately on enrollment
+			'show_in_rest' => function () {
+				return current_user_can('edit_posts');
+			}
+		]);
 	}
 }

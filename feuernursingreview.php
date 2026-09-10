@@ -30,3 +30,10 @@ add_action('init', ['Feuernursingreview\CPT\LessonCPT', 'register']);
 add_action('init', ['Feuernursingreview\CPT\QuizCPT', 'register']);
 add_action('init', ['Feuernursingreview\CPT\QuestionCPT', 'register']);
 add_action('init', ['Feuernursingreview\CPT\Taxonomies', 'register']);
+add_action('init', ['Feuernursingreview\Core\DripEngine', 'register']);
+add_action('rest_api_init', function () {
+	(new \Feuernursingreview\API\RESTController())->register_routes();
+	(new \Feuernursingreview\API\ProgressController())->register_routes();
+});
+add_action('admin_init', ['Feuernursingreview\Admin\EnrollmentMetaBox', 'register']);
+add_action('admin_init', ['Feuernursingreview\Admin\EnrollmentFormHandler', 'register']);
