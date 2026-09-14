@@ -39,12 +39,48 @@ class LessonCPT {
 		]);
 
 		register_post_meta(self::POST_TYPE, 'drip_days', [
-			'type' => 'integer',
-			'single' => true,
-			'default' => 0, // 0 = available immediately on enrollment
+			'type' 		   => 'integer',
+			'single' 	   => true,
+			'default' 	   => 0, // 0 = available immediately on enrollment
 			'show_in_rest' => function () {
 				return current_user_can('edit_posts');
 			}
+		]);
+
+		register_post_meta(self::POST_TYPE, 'media_type', [
+			'type' 			=> 'string',
+			'single' 		=> true,
+			'default' 		=> 'none', // none | video | pdf | audio
+			'show_in_rest'  => true,
+			'auth_callback' => fn() => current_user_can('edit_posts'),
+		]);
+
+		register_post_meta(self::POST_TYPE, 'video_url', [
+			'type' 			=> 'string',
+			'single' 		=> true,
+			'show_in_rest'  => true,
+			'auth_callback' => fn() => current_user_can('edit_posts'),
+		]);
+
+		register_post_meta(self::POST_TYPE, 'pdf_attachment_id', [
+			'type' 			=> 'integer',
+			'single' 		=> true,
+			'show_in_rest'  => true,
+			'auth_callback' => fn() => current_user_can('edit_posts'),
+		]);
+
+		register_post_meta(self::POST_TYPE, 'audio_attachment_id', [
+			'type' 			=> 'integer',
+			'single' 		=> true,
+			'show_in_rest'  => true,
+			'auth_callback' => fn() => current_user_can('edit_posts'),
+		]);
+
+		register_post_meta(self::POST_TYPE, 'audio_transcript', [
+			'type' 			=> 'string',
+			'single' 		=> true,
+			'show_in_rest'  => true,
+			'auth_callback' => fn() => current_user_can('edit_posts'),
 		]);
 	}
 }

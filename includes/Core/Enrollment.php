@@ -16,7 +16,7 @@ if (!defined('ABSPATH')) exit;
 
 class Enrollment {
 	private static function meta_key(int $course_id): string {
-		return "_fnr_enrolled_at{$course_id}";
+		return "_fnr_enrolled_at_{$course_id}";
 	}
 
 	public static function enroll(int $user_id, int $course_id): bool {
@@ -29,6 +29,10 @@ class Enrollment {
 			self::meta_key($course_id),
 			current_time('mysql')
 		);
+	}
+
+	public static function unenroll(int $user_id, int $course_id): bool {
+		return (bool) delete_user_meta($user_id, self::meta_key($course_id));
 	}
 
 	public static function is_enrolled(int $user_id, int $course_id): bool {
@@ -48,5 +52,32 @@ class Enrollment {
 			'meta_key' => self::meta_key($course_id),
 			'role'	   => 'fnr_student',
 		]);
+	}
+
+	/**
+	 * All course IDs a user is enrolled in. Queries usermeta directly since
+	 * enrollment keys are per-course (_fnr_enrolled_at_{course_id}) and
+	 * get_user_meta() has no wildcard/LIKE lookup - this is the one place
+	 * that needs to go around it.
+	 */
+	public static function get_enrolled_course_ids(int $user_id): array {
+		global $wpdb;
+
+		$keys = $wpdb->get_col($wpdb->prepare(
+			"SELECT meta_key FROM {$wpdb->usermeta}
+			WHERE user_id = %d AND meta_key LIKE %s",
+			$user_id,
+			$wpdb->esc_like('_fnr_enrolled_at_') . '%'
+		));
+
+		$course_ids = [];
+		foreach ($keys as $key) {
+			$course_id = (int) str_replace('_fnr_enrolled_at_', '', $key);
+			if ($course_id > 0) {
+				$course_ids[] = $course_id;
+			}
+		}
+
+		return $course_ids;
 	}
 }

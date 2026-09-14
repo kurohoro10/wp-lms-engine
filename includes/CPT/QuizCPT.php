@@ -40,5 +40,14 @@ class QuizCPT {
 			* with show_in_rest enabled for Gutenberg/React integration.
 			*/
 		]);
+
+		foreach (['time_limit_minutes', 'pass_threshold', 'ngn_mode'] as $key) {
+			register_post_meta(self::POST_TYPE, $key, [
+				'type' 		   => in_array($key, ['time_limit_minutes', 'pass_threshold'], true) ? 'number' : 'boolean',
+				'single' 	   => true,
+				'show_in_rest' => true,
+				'aut_callback' => fn() => current_user_can('edit_posts'),
+			]);
+		}
 	}
 }

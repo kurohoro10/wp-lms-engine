@@ -4,6 +4,8 @@
  */
 namespace Feuernursingreview\Admin;
 
+use Feuernursingreview\Core\TemplateLoader;
+
 if (!defined('ABSPATH')) exit;
 
 abstract class AbstractMetaBox {
@@ -37,6 +39,6 @@ abstract class AbstractMetaBox {
 	}
 
 	protected static function render_template(string $template, array $args = []): void {
-		TemplateLoader::render($template, $args);
+		TemplateLoader::render($template, $args); // defaults to admin/views/
 	}
 }
