@@ -97,6 +97,14 @@ class QuizAttemptsDB {
 			['%d']
 		);
 
+		if ($updated !== false) {
+			/**
+			 * Lets DripEngine unlock any quiz-gated lessons straight away
+			 * rather than on the student's next page load.
+			 */
+			do_action('fnr_quiz_attempt_completed', $attempt_id, (int) $attempt->user_id);
+		}
+
 		return $updated !== false;
 	}
 
@@ -111,5 +119,27 @@ class QuizAttemptsDB {
 		return $wpdb->get_results($wpdb->prepare(
 			"SELECT * FROM $table WHERE user_id = %d AND quiz_id = %d ORDER BY started_at DESC", $user_id, $quiz_id
 		));
+	}
+
+	/**
+	 * The student's best percentage across all COMPLETED attempts on a
+	 * quiz, or null if they've never finished one.
+	 *
+	 * Only completed attempts count - an abandoned attempt sitting at 0%
+	 * shouldn't drag a gate down, and an in-progress one that happens to
+	 * be at 100% after one question shouldn't open it early.
+	 */
+	public static function get_best_percentage(int $user_id, int $quiz_id): ?float {
+		global $wpdb;
+		$table = self::table();
+
+		$best = $wpdb->get_var($wpdb->prepare(
+			"SELECT MAX(percentage) FROM $table
+			WHERE user_id = %d AND quiz_id = %d AND completed_at IS NOT NULL",
+			$user_id,
+			$quiz_id
+		));
+
+		return $best === null ? null : (float) $best;
 	}
 }

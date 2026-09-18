@@ -1,0 +1,65 @@
+/* admin/css/lesson-media.css */
+
+.fnr-slide-admin-list {
+	margin: 0 0 0.5rem;
+	padding: 0;
+	list-style: none;
+	max-height: 340px;
+	overflow-y: auto;
+	border: 1px solid #dcdcde;
+	border-radius: 2px;
+}
+
+.fnr-slide-admin-list:empty {
+	border: none;
+}
+
+.fnr-slide-admin-item {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	padding: 6px 8px;
+	border-bottom: 1px solid #f0f0f1;
+	background: #fff;
+}
+
+.fnr-slide-admin-item:last-child {
+	border-bottom: none;
+}
+
+.fnr-slide-admin-number {
+	min-width: 1.75rem;
+	text-align: right;
+	color: #646970;
+	font-variant-numeric: tabular-nums;
+}
+
+.fnr-slide-admin-thumb {
+	width: 64px;
+	height: 48px;
+	object-fit: cover;
+	border-radius: 2px;
+	background: #f0f0f1;
+}
+
+.fnr-slide-admin-title {
+	flex: 1;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.fnr-slide-admin-controls {
+	display: flex;
+	gap: 4px;
+	flex-shrink: 0;
+}
+
+/*
+ * Inactive media/drip groups are hidden inline by lesson-media.js. This
+ * rule only matters before the script runs: without it every group
+ * flashes visible on slow loads.
+ */
+.fnr-media-box[data-active-type] .fnr-media-field:not([data-media-type]) {
+	display: none;
+}

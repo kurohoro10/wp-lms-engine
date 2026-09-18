@@ -6,12 +6,15 @@ if (!defined('ABSPATH')) exit;
 class NGNScorer {
 	/**
 	 * 1. The 0/1 Scoring Rule
-	 * Used for: Traditional MCQ Bow-Tie, Drop-Down Cloze.
+	 * Used for: Traditional MCQ, Matrix Single Choice, Drop-Down Cloze,
+	 * Bow-Tie, and Ordered Response.
+	 *
+	 * Deliberately does NOT sort either array before comparing. For MCQ
+	 * that has no effect (a single-answer selection sorts to itself),
+	 * but for Ordered Response the sequence IS the answer - sorting
+	 * would make any permutation of the right options score as correct.
 	 */
 	public static function score_zero_one(array $user_answers, array $correct_answers): array {
-		sort($user_answers);
-		sort($correct_answers);
-
 		$is_correct = ($user_answers === $correct_answers);
 		return [
 			'points_earned' => $is_correct ? 1.0 : 0.0,
@@ -48,21 +51,60 @@ class NGNScorer {
 	}
 
 	/**
-	 * 3. The Rationale Scoring Rule (Dyads & Triads)
-	 * Used for: Drag-and-Drop Dyads/Triads, Linked Reasoning Chains.
-	 * Rule: Points are awarded ONLY if BOTH cause and effect are correctly linked.
+	 * 3. The Rationale Scoring Rule - dyad AND triad.
+	 * Used for: Drag-and-Drop Dyads (cause -> effect) and Triads
+	 * (condition -> intervention -> outcome).
+	 * Rule: points are awarded ONLY if every linked slot is correct -
+	 * a 2-of-3 triad is worth the same as 0-of-3.
+	 *
+	 * $correct_links defines which slots exist (its keys), so the same
+	 * method handles a 2-key dyad or a 3-key triad without the caller
+	 * needing to know which shape it's scoring.
 	 */
-	public static function score_rationale_dyad(string $user_cause, string $user_effect, string $correct_cause, string $correct_effect): array {
-		$cause_correct  = ($user_cause 	=== $correct_cause);
-		$effect_correct = ($user_effect === $correct_effect);
+	public static function score_rationale(array $user_links, array $correct_links): array {
+		$all_correct = true;
 
-		// Both items in the pair must be correct to earn the point
-		$points = ($cause_correct && $effect_correct) ? 1.0 : 0.0;
+		foreach ($correct_links as $slot => $correct_value) {
+			if (($user_links[$slot] ?? null) !== $correct_value) {
+				$all_correct = false;
+				break;
+			}
+		}
+
+		$points = $all_correct ? 1.0 : 0.0;
 
 		return [
 			'points_earned' => $points,
 			'max_points' 	=> 1.0,
-			'is_correct' 	=> ($points === 1.0)
+			'is_correct' 	=> $all_correct,
+		];
+	}
+
+	/**
+	 * Back-compat wrapper for the old dyad-only signature. New code
+	 * should call score_rationale() directly (it also handles triads).
+	 */
+	public static function score_rationale_dyad(string $user_cause, string $user_effect, string $correct_cause, string $correct_effect): array {
+		return self::score_rationale(
+			['cause' => $user_cause, 'effect' => $user_effect],
+			['cause' => $correct_cause, 'effect' => $correct_effect]
+		);
+	}
+
+	/**
+	 * 4. Numeric Tolerance Rule
+	 * Used for: Numeric Fill-in-the-Blank (dosage calculations, IV drip
+	 * rates). An exact-match array comparison is too brittle for numeric
+	 * answers ("2.5" vs "2.50" vs floating-point rounding), so this
+	 * compares within an allowed tolerance instead.
+	 */
+	public static function score_numeric(float $user_value, float $correct_value, float $tolerance = 0.0): array {
+		$is_correct = abs($user_value - $correct_value) <= abs($tolerance);
+
+		return [
+			'points_earned' => $is_correct ? 1.0 : 0.0,
+			'max_points' 	=> 1.0,
+			'is_correct' 	=> $is_correct,
 		];
 	}
 }

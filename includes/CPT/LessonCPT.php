@@ -32,8 +32,8 @@ class LessonCPT {
 			],
 			'public' 	   	  => true,
 			'show_in_rest' 	  => true,
-			'hierarchical'    => true, // enables Post Parent -> fnr_course
-			'rewrite' 	      => ['slug' => 'lessons'],
+			'hierarchical'    => false, // disables Post Parent -> fnr_course
+			'rewrite' 	      => ['slug' => ''],
 			'supports' 		  => ['title', 'editor', 'thumbnail', 'page-attributes', 'custom-fields'],
 			'capability_type' => 'post',
 		]);
@@ -79,6 +79,14 @@ class LessonCPT {
 		register_post_meta(self::POST_TYPE, 'audio_transcript', [
 			'type' 			=> 'string',
 			'single' 		=> true,
+			'show_in_rest'  => true,
+			'auth_callback' => fn() => current_user_can('edit_posts'),
+		]);
+
+		register_post_meta(self::POST_TYPE, 'linked_quiz_id', [
+			'type' 			=> 'integer',
+			'single' 		=> true,
+			'default' 		=> 0, // 0 = no quiz required for this lesson
 			'show_in_rest'  => true,
 			'auth_callback' => fn() => current_user_can('edit_posts'),
 		]);

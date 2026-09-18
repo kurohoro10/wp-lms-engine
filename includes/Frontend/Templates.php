@@ -6,6 +6,7 @@ namespace Feuernursingreview\Frontend;
 
 use Feuernursingreview\CPT\LessonCPT;
 use Feuernursingreview\CPT\CourseCPT;
+use Feuernursingreview\CPT\QuizCPT;
 
 if (!defined('ABSPATH')) exit;
 
@@ -21,6 +22,10 @@ class Templates {
 
 		if (is_singular(CourseCPT::POST_TYPE)) {
 			return self::locate('single-fnr_course.php') ?: $template;
+		}
+
+		if (is_singular(QuizCPT::POST_TYPE)) {
+			return self::locate('single-fnr_quiz.php') ?: $template;
 		}
 
 		return $template;

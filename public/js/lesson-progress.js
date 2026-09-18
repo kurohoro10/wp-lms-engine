@@ -41,7 +41,7 @@
 		} catch (err) {
 			if (button) {
 				button.disabled = false;
-				button.removedAttribute('aria-busy');
+				button.removeAttribute('aria-busy');
 			}
 
 			if (feedback) feedback.textContent = err.message;
@@ -51,4 +51,5 @@
 	if (button) button.addEventListener('click', markComplete);
 
 	document.addEventListener('fnr:video-watched', markComplete);
+	document.addEventListener('fnr:slides-viewed', markComplete);
 })();

@@ -18,7 +18,7 @@ if (!defined('ABSPATH')) exit;
 ?>
 
 <div id="fnr-dashboard" class="fnr-dashboard">
-	<h1 class="fnr-dashboard-title"><?php esc_html_e('My Dashboard', 'feuernurgingreview'); ?></h1>
+	<h1 class="fnr-dashboard-title"><?php esc_html_e('My Dashboard', 'feuernursingreview'); ?></h1>
 
 	<section class="fnr-dashboard-courses" aria-labelledby="fnr-dashboard-courses-heading">
 		<h2 id="fnr-dashboard-courses-heading"><?php esc_html_e('My Courses', 'feuernursingreview'); ?></h2>
@@ -51,7 +51,7 @@ if (!defined('ABSPATH')) exit;
 								);
 							?>"
 						>
-							<div class="fnr-progress-bar-fill" style="width:<?php esc_attr( $course['percent'] ); ?>%"></div>
+							<div class="fnr-progress-bar-fill" style="width:<?php echo esc_attr( $course['percent'] ); ?>%"></div>
 						</div>
 
 						<p class="fnr-progress-label">

@@ -49,12 +49,12 @@ class CourseLessonOrderMetaBox extends AbstractMetaBox {
 	 * menu_order to match their position in that array.
 	 */
 	public static function handle_reorder() {
-		chech_ajax_referer(self::NONCE_ACTION, 'nonce');
+		check_ajax_referer(self::NONCE_ACTION, 'nonce');
 
 		$course_id = absint($_POST['course_id'] ?? 0);
 		$lesson_ids = array_map('absint', (array) ($_POST['lesson_ids'] ?? []));
 
-		if (!current_use_can('edit_post', $course_id)) {
+		if (!current_user_can('edit_post', $course_id)) {
 			wp_send_json_error(['message' => __('Permission denied.', 'feuernursingreview')], 403);
 		}
 

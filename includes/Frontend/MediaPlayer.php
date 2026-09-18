@@ -1,6 +1,13 @@
 <?php
 /**
  * includes/Frontend/MediaPlayer.php
+ *
+ * Renders the media block for a lesson: video, PDF, audio, or a slide
+ * deck.
+ *
+ * NOTE: this previously read the meta key 'meta_type' while everything
+ * else in the plugin wrote 'media_type', so render() always fell through
+ * to the default branch and no lesson ever showed its media. Fixed here.
  */
 namespace Feuernursingreview\Frontend;
 
@@ -8,14 +15,128 @@ if (!defined('ABSPATH')) exit;
 
 class MediaPlayer {
 	public static function render(int $lesson_id): string {
-		$type = get_post_meta($lesson_id, 'meta_type', true) ?: 'none';
+		$type = get_post_meta($lesson_id, 'media_type', true) ?: 'none';
 
 		switch ($type) {
-			case 'video' : return self::render_video($lesson_id);
-			case 'pdf'   : return self::render_pdf($lesson_id);
-			case 'audio' : return self::render_audio($lesson_id);
-			default 	 : return '';
+			case 'video'  : return self::render_video($lesson_id);
+			case 'pdf'    : return self::render_pdf($lesson_id);
+			case 'audio'  : return self::render_audio($lesson_id);
+			case 'slides' : return self::render_slides($lesson_id);
+			default       : return '';
 		}
+	}
+
+	/**
+	 * Slide deck: an ordered list of image attachments, rendered as a
+	 * single-slide-at-a-time viewer.
+	 *
+	 * Every slide is emitted into the DOM up front rather than fetched on
+	 * demand. It keeps the markup static (no JSON blob, no REST round
+	 * trip), it degrades to a plain vertical list of captioned images
+	 * when JS is off, and the images past the first are lazy-loaded so a
+	 * 40-slide deck doesn't cost 40 requests on page load.
+	 */
+	private static function render_slides(int $lesson_id): string {
+		$slide_ids = self::get_slide_ids($lesson_id);
+
+		if (!$slide_ids) {
+			return '';
+		}
+
+		$total = count($slide_ids);
+		$slides_html = '';
+
+		foreach ($slide_ids as $index => $attachment_id) {
+			$image = wp_get_attachment_image($attachment_id, 'large', false, [
+				'class'   => 'fnr-slide__image',
+				'loading' => $index === 0 ? 'eager' : 'lazy',
+				'decoding' => 'async',
+			]);
+
+			if (!$image) {
+				continue;
+			}
+
+			$caption = wp_get_attachment_caption($attachment_id);
+
+			$slides_html .= sprintf(
+				'<li class="fnr-slide" id="fnr-slide-%1$d" data-slide-index="%2$d" role="group" aria-roledescription="%3$s" aria-label="%4$s"%5$s>
+					%6$s
+					%7$s
+				</li>',
+				$index + 1,
+				$index,
+				esc_attr__('slide', 'feuernursingreview'),
+				esc_attr(sprintf(
+					// translators: 1: current slide number, 2: total slides
+					__('Slide %1$d of %2$d', 'feuernursingreview'),
+					$index + 1,
+					$total
+				)),
+				$index === 0 ? '' : ' hidden',
+				$image,
+				$caption
+					? '<figcaption class="fnr-slide__caption">' . wp_kses_post($caption) . '</figcaption>'
+					: ''
+			);
+		}
+
+		if (!$slides_html) {
+			return '';
+		}
+
+		return sprintf(
+			'<div class="fnr-slides" data-fnr-slides data-total="%1$d" data-lesson-id="%2$d">
+				<div class="fnr-slides__stage">
+					<ol class="fnr-slides__list">%3$s</ol>
+				</div>
+
+				<div class="fnr-slides__controls">
+					<button type="button" class="button fnr-slides__prev" disabled>
+						<span aria-hidden="true">&larr;</span> %4$s
+					</button>
+
+					<p class="fnr-slides__counter" role="status" aria-live="polite">
+						<span class="fnr-slides__current">1</span> / <span class="fnr-slides__total">%1$d</span>
+					</p>
+
+					<button type="button" class="button fnr-slides__next">
+						%5$s <span aria-hidden="true">&rarr;</span>
+					</button>
+				</div>
+
+				<p class="fnr-slides__hint description">%6$s</p>
+			</div>',
+			$total,
+			$lesson_id,
+			$slides_html,
+			esc_html__('Previous', 'feuernursingreview'),
+			esc_html__('Next', 'feuernursingreview'),
+			esc_html__('Use the arrow keys to move between slides.', 'feuernursingreview')
+		);
+	}
+
+	/**
+	 * Slide IDs, normalized and filtered down to attachments that still
+	 * exist. An editor deleting an image from the media library shouldn't
+	 * leave a blank slide in the deck.
+	 *
+	 * @return int[]
+	 */
+	public static function get_slide_ids(int $lesson_id): array {
+		$raw = get_post_meta($lesson_id, 'slide_ids', true);
+
+		if (is_string($raw)) {
+			$raw = array_filter(explode(',', $raw));
+		}
+
+		if (!is_array($raw)) {
+			return [];
+		}
+
+		$ids = array_values(array_unique(array_filter(array_map('absint', $raw))));
+
+		return array_values(array_filter($ids, fn($id) => wp_attachment_is_image($id)));
 	}
 
 	private static function render_video(int $lesson_id): string {
@@ -28,7 +149,7 @@ class MediaPlayer {
 		}
 
 		return sprintf(
-			'div class="fnr-video-wrapper" data-fnr-video-provider="%s">
+			'<div class="fnr-video-wrapper" data-fnr-video-provider="%s">
 				<iframe
 					id="fnr-video-player"
 					src="%s"
@@ -46,14 +167,14 @@ class MediaPlayer {
 
 	private static function render_pdf(int $lesson_id): string {
 		$attachment_id = (int) get_post_meta($lesson_id, 'pdf_attachment_id', true);
-		if (!$attachment_id)return '';
+		if (!$attachment_id) return '';
 
 		$url = wp_get_attachment_url($attachment_id);
-		if(!$url) return '';
+		if (!$url) return '';
 
 		return sprintf(
 			'<div class="fnr-pdf-wrapper">
-				embed src="%1$s" type="application/pdf" width="100%%" height="600" aria-label="%2$s" />
+				<embed src="%1$s" type="application/pdf" width="100%%" height="600" aria-label="%2$s" />
 				<p class="fnr-pdf-fallback">
 					<a href="%1$s" target="_blank" rel="noopener noreferrer">%3$s</a>
 				</p>
@@ -111,14 +232,14 @@ class MediaPlayer {
 		if (preg_match('~youtu(?:\.be/|be\.com/watch\?v=)([\w-]+)~', $url, $m)) {
 			return [
 				'provider' => 'youtube',
-				'src' 	   => 'https://www.youtube.com/embed/' . $m[1] . '?enablejsapi=1',
+				'src'      => 'https://www.youtube.com/embed/' . $m[1] . '?enablejsapi=1',
 			];
 		}
 
 		if (preg_match('~vimeo\.com/(\d+)~', $url, $m)) {
 			return [
 				'provider' => 'vimeo',
-				'src' 	   => 'https://player.vimeo.com/video/' . $m[1] . '?api=1',
+				'src'      => 'https://player.vimeo.com/video/' . $m[1] . '?api=1',
 			];
 		}
 

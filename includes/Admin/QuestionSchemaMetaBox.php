@@ -15,7 +15,7 @@ class QuestionSchemaMetaBox extends AbstractSaveableMetaBox {
 	protected static function id(): string { return 'fnr_question_schema'; }
 	protected static function title(): string { return __('Question Schema (JSON)', 'feuernursingreview'); }
 	protected static function post_type(): string { return QuestionCPT::POST_TYPE; }
-	protected static function contect(): string { return 'normal'; }
+	protected static function context(): string { return 'normal'; }
 	protected static function nonce_action(): string { return self::NONCE_ACTION; }
 	protected static function nonce_field(): string { return self::NONCE_FIELD; }
 

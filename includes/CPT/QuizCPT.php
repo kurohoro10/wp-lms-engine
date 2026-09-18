@@ -32,7 +32,7 @@ class QuizCPT {
 			],
 			'public' 	   => true,
 			'show_in_rest' => true,
-			'rewrite' 	   => ['slug' => 'quizzes'],
+			'rewrite' 	   => ['slug' => 'nclex-quizzes'],
 			'supports' 	   => ['title', 'custom-fields'],
 			/*
 			* Quiz settings such as time_limit, pass_threshold, and ngn_mode

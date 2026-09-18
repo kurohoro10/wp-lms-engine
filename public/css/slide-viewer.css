@@ -1,0 +1,92 @@
+/* public/css/slide-viewer.css */
+
+.fnr-slides {
+	margin: 1.5rem 0;
+}
+
+.fnr-slides__stage {
+	position: relative;
+	background: #111;
+	border-radius: 4px;
+	overflow: hidden;
+}
+
+.fnr-slides__list {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.fnr-slide {
+	margin: 0;
+	padding: 0;
+}
+
+.fnr-slide:focus {
+	outline: 2px solid #2271b1;
+	outline-offset: -2px;
+}
+
+.fnr-slide__image {
+	display: block;
+	width: 100%;
+	height: auto;
+	/*
+	 * Slide decks are mixed aspect ratios in practice (4:3 exports next
+	 * to 16:9 ones). Letterboxing inside a fixed box keeps the controls
+	 * from jumping up and down as you page through.
+	 */
+	max-height: 70vh;
+	object-fit: contain;
+	margin: 0 auto;
+}
+
+.fnr-slide__caption {
+	padding: 0.5rem 0.75rem;
+	background: #1d2327;
+	color: #f0f0f1;
+	font-size: 0.875rem;
+}
+
+.fnr-slides__controls {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 1rem;
+	margin-top: 0.75rem;
+}
+
+.fnr-slides__counter {
+	margin: 0;
+	font-variant-numeric: tabular-nums;
+}
+
+.fnr-slides__hint {
+	margin-top: 0.25rem;
+	font-size: 0.8125rem;
+	color: #646970;
+}
+
+/*
+ * No-JS fallback: without the script nothing ever unsets [hidden] on
+ * slides 2..n, so show the whole deck as a plain vertical list and drop
+ * the controls that would do nothing.
+ */
+.no-js .fnr-slide[hidden] {
+	display: block;
+}
+
+.no-js .fnr-slides__controls,
+.no-js .fnr-slides__hint {
+	display: none;
+}
+
+@media (max-width: 600px) {
+	.fnr-slide__image {
+		max-height: 50vh;
+	}
+
+	.fnr-slides__hint {
+		display: none; /* no arrow keys to speak of */
+	}
+}

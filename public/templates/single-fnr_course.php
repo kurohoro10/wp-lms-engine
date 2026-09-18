@@ -2,49 +2,50 @@
 /**
  * public/templates/single-fnr_course.php
  *
- * Course landing page: lesson  list (with per-lesson drip status),
- * course-level progress bar, enrollment gate.
+ * Course landing page: lessons grouped by module, per-lesson lock state
+ * with the reason it's locked, course progress bar, enrollment gate.
  */
 
-use Feuernursingreview\CPT\LessonCPT;
 use Feuernursingreview\Core\Enrollment;
 use Feuernursingreview\Core\DripEngine;
+use Feuernursingreview\Core\Modules;
 use Feuernursingreview\Database\UserProgressDB;
+use Feuernursingreview\Database\QuizAttemptsDB;
 
 if (!defined('ABSPATH')) exit;
 
+get_header();
+
 $course_id    = get_the_ID();
-$user_id	  = get_current_user_id();
+$user_id      = get_current_user_id();
 $is_logged_in = is_user_logged_in();
 $is_enrolled  = $is_logged_in && Enrollment::is_enrolled($user_id, $course_id);
 
-$lessons = get_posts([
-	'post_type' 	 => LessonCPT::POST_TYPE,
-	'post_parent' 	 => $course_id,
-	'post_status' 	 => 'publish',
-	'orderby' 	  	 => 'menu_order',
-	'order' 	  	 => 	'ASC',
-	'posts_per_page' => -1,
-]);
+$groups  = Modules::get_course_tree($course_id);
+$lessons = Modules::get_ordered_lessons($course_id);
+$quizzes = Modules::get_course_quizzes($course_id);
 
 $completed_count = 0;
 
 if ($is_enrolled) {
 	/**
-	 * Refresh each lesson's unlock status against drip_days as the page
-	 * loads - same check template_redirect runs, so the list reflects
-	 * reality even for lessons the student hasn't clicked into yet.
+	 * Refresh each lesson's unlock status as the page loads - the same
+	 * check template_redirect runs - so the list reflects reality even
+	 * for lessons the student hasn't clicked into yet.
 	 */
 	foreach ($lessons as $lesson) {
 		DripEngine::is_accessible($user_id, $course_id, $lesson->ID);
 	}
 
-	$progress_rows 	 = UserProgressDB::get_course_progress($user_id, $course_id);
+	$progress_rows   = UserProgressDB::get_course_progress($user_id, $course_id);
 	$completed_count = count(array_filter($progress_rows, fn($row) => $row->status === 'completed'));
 }
 
 $total_lessons = count($lessons);
 $percent = $total_lessons > 0 ? round(($completed_count / $total_lessons) * 100) : 0;
+
+// Set by DripEngine::enforce_drip() when it bounced someone off a lesson.
+$blocked_lesson = isset($_GET['fnr_locked']) ? absint($_GET['fnr_locked']) : 0;
 ?>
 
 <main id="fnr-course" class="fnr-course">
@@ -56,14 +57,30 @@ $percent = $total_lessons > 0 ? round(($completed_count / $total_lessons) * 100)
 		</div>
 	</article>
 
+	<?php if ($blocked_lesson && $is_enrolled) : ?>
+		<p class="fnr-locked-notice" role="status">
+			<?php
+				printf(
+					// translators: %s: lesson title
+					esc_html__('"%s" isn\'t available yet.', 'feuernursingreview'),
+					esc_html(get_the_title($blocked_lesson))
+				);
+				$reason = DripEngine::reason($user_id, $course_id, $blocked_lesson);
+				if ($reason) {
+					echo ' ' . esc_html($reason);
+				}
+			?>
+		</p>
+	<?php endif; ?>
+
 	<?php if (!$is_logged_in) : ?>
 
 		<p class="fnr-login-notice">
 			<?php
 				printf(
-					// translators: %s: login URL
+					// translators: %s: login link
 					esc_html__('Please %s to access this course.', 'feuernursingreview'),
-					'<a href="' . esc_url(wp_login_url(get_permalink())) . '">' . esc_html('log in', 'feuernursingreview') . '</a>'
+					'<a href="' . esc_url(wp_login_url(get_permalink())) . '">' . esc_html__('log in', 'feuernursingreview') . '</a>'
 				);
 			?>
 		</p>
@@ -83,92 +100,161 @@ $percent = $total_lessons > 0 ? round(($completed_count / $total_lessons) * 100)
 				aria-valuenow="<?php echo esc_attr($percent); ?>"
 				aria-valuemin="0"
 				aria-valuemax="100"
-				aria-label="
-				<?php
+				aria-label="<?php
 					printf(
-						// translator: 1: completed lessons, 2: total lessons
+						// translators: 1: completed lessons, 2: total lessons
 						esc_attr__('%1$d of %2$d lessons completed', 'feuernursingreview'),
 						$completed_count,
 						$total_lessons
 					);
 				?>"
 			>
-				<div class="fnr-progress-bar-fill" style="width:<?php echo esc_attr($percent); ?>"></div>
+				<div class="fnr-progress-bar-fill" style="width:<?php echo esc_attr($percent); ?>%"></div>
 			</div>
 
 			<p class="fnr-progress-label">
-
 				<?php
 					printf(
-						// translator: 1: completed lessons, 2: total lessons, 3: percent
+						// translators: 1: completed lessons, 2: total lessons, 3: percent
 						esc_html__('%1$d of %2$d lessons complete (%3$d%%)', 'feuernursingreview'),
 						$completed_count,
 						$total_lessons,
 						$percent
 					);
 				?>
-
 			</p>
 		</section>
 
-		<?php if ($lessons) : ?>
+		<?php if ($groups) : ?>
 
-			<nav aria-label="<?php esc_attr_e('Lessons', 'feuernursingreview'); ?>">
-				<ol class="fnr-lesson-list">
+			<nav class="fnr-course-outline" aria-label="<?php esc_attr_e('Course outline', 'feuernursingreview'); ?>">
 
-					<?php
-						foreach ($lessons as $lesson) :
-							$row = UserProgressDB::get_row($user_id, $course_id, $lesson->ID);
-							$status = $row->status ?? 'locked';
-					?>
+				<?php foreach ($groups as $group_index => $group) :
+					$module = $group['module'];
 
-						<li class="fnr-lesson-item fnr-lesson-item--<?php echo esc_attr($status); ?>">
+					/**
+					 * Per-module completion, so a student can see which
+					 * module they're in the middle of rather than only a
+					 * course-wide number.
+					 */
+					$module_total = count($group['lessons']);
+					$module_done  = count(array_filter(
+						$group['lessons'],
+						fn($lesson) => UserProgressDB::is_completed($user_id, $course_id, $lesson->ID)
+					));
 
-							<?php if ($status === 'locked') : ?>
+					$heading_id = 'fnr-module-' . ($module ? $module->ID : 'other');
+				?>
 
-								<span class="fnr-lesson-title fnr-lesson-title--locked" aria-disabled="true">
-									<?php echo esc_html(get_the_title($lesson)); ?>
-								</span>
-								<span class="fnr-lesosn-status">
-									<?php esc_html_e('Locked', 'feuernursingreview'); ?>
-									<?php
-										$drip_days = (int) get_post_meta($lesson->ID, 'drip_days', true);
-										if ($drip_days > 0) {
-											printf(
-												// translators: %d: number of days
-												' — ' . esc_html__('unlocks %d day(s) after enrollment', 'feuernursingreview'),
-												$drip_days
-											);
-										}
-									?>
-								</span>
+					<section class="fnr-module" aria-labelledby="<?php echo esc_attr($heading_id); ?>">
 
-							<?php else : ?>
+						<h2 class="fnr-module__title" id="<?php echo esc_attr($heading_id); ?>">
+							<?php
+								echo $module
+									? esc_html(get_the_title($module))
+									: esc_html__('Other lessons', 'feuernursingreview');
+							?>
+							<span class="fnr-module__count">
+								<?php
+									printf(
+										// translators: 1: completed lessons in this module, 2: total lessons in this module
+										esc_html__('%1$d/%2$d', 'feuernursingreview'),
+										$module_done,
+										$module_total
+									);
+								?>
+							</span>
+						</h2>
 
-								<a href="<?php echo esc_url(get_permalink($lesson)); ?>" class="fnr-lesson-title">
-									<?php echo esc_html(get_the_title($lesson)); ?>
-								</a>
-								<span class="fnr-lesson-status">
+						<?php if ($module && $module->post_content) : ?>
+							<div class="fnr-module__description">
+								<?php echo wp_kses_post(apply_filters('the_content', $module->post_content)); ?>
+							</div>
+						<?php endif; ?>
 
-									<?php
-										echo $status === 'completed'
-										? esc_html__('Completed ✓', 'feuernursingreview')
-										: esc_html__('Available', 'feuernursingreview');
-									?>
+						<ol class="fnr-lesson-list">
+							<?php foreach ($group['lessons'] as $lesson) :
+								$row    = UserProgressDB::get_row($user_id, $course_id, $lesson->ID);
+								$status = $row->status ?? 'locked';
+							?>
 
-								</span>
+								<li class="fnr-lesson-item fnr-lesson-item--<?php echo esc_attr($status); ?>">
 
-							<?php endif; ?>
-						</li>
+									<?php if ($status === 'locked') : ?>
 
-					<?php endforeach; ?>
+										<span class="fnr-lesson-title fnr-lesson-title--locked" aria-disabled="true">
+											<?php echo esc_html(get_the_title($lesson)); ?>
+										</span>
+										<span class="fnr-lesson-status">
+											<?php esc_html_e('Locked', 'feuernursingreview'); ?>
+											<?php
+												$reason = DripEngine::reason($user_id, $course_id, $lesson->ID);
+												if ($reason) {
+													echo ' — ' . esc_html($reason);
+												}
+											?>
+										</span>
 
-				</ol>
+									<?php else : ?>
+
+										<a href="<?php echo esc_url(get_permalink($lesson)); ?>" class="fnr-lesson-title">
+											<?php echo esc_html(get_the_title($lesson)); ?>
+										</a>
+										<span class="fnr-lesson-status">
+											<?php
+												echo $status === 'completed'
+													? esc_html__('Completed ✓', 'feuernursingreview')
+													: esc_html__('Available', 'feuernursingreview');
+											?>
+										</span>
+
+									<?php endif; ?>
+								</li>
+
+							<?php endforeach; ?>
+						</ol>
+					</section>
+
+				<?php endforeach; ?>
+
 			</nav>
 
 		<?php else : ?>
 
 			<p><?php esc_html_e('No lessons have been published for this course yet.', 'feuernursingreview'); ?></p>
+
+		<?php endif; ?>
+
+		<?php if ($quizzes) : ?>
+
+			<section class="fnr-course-quizzes" aria-labelledby="fnr-course-quizzes-heading">
+				<h2 id="fnr-course-quizzes-heading"><?php esc_html_e('Quizzes', 'feuernursingreview'); ?></h2>
+
+				<ul class="fnr-quiz-list">
+					<?php foreach ($quizzes as $quiz) :
+						$best = QuizAttemptsDB::get_best_percentage($user_id, $quiz->ID);
+					?>
+						<li class="fnr-quiz-item">
+							<a href="<?php echo esc_url(get_permalink($quiz)); ?>" class="fnr-quiz-title">
+								<?php echo esc_html(get_the_title($quiz)); ?>
+							</a>
+							<?php if ($best !== null) : ?>
+								<span class="fnr-quiz-status">
+									<?php
+										printf(
+											// translators: %d: best score percentage on this quiz
+											esc_html__('Best score: %d%%', 'feuernursingreview'),
+											round($best)
+										);
+									?>
+								</span>
+							<?php else : ?>
+								<span class="fnr-quiz-status"><?php esc_html_e('Not attempted', 'feuernursingreview'); ?></span>
+							<?php endif; ?>
+						</li>
+					<?php endforeach; ?>
+				</ul>
+			</section>
 
 		<?php endif; ?>
 	<?php endif; ?>

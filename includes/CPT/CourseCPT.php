@@ -33,7 +33,7 @@ class CourseCPT {
 			'public' 	   => true,
 			'show_in_rest' => true, // enables Gutenberg
 			'has_archive'  => true,
-			'rewrite' 	   => ['slug' => 'courses'],
+			'rewrite' 	   => ['slug' => 'nclex-courses'],
 			'supports'	   => ['title', 'editor', 'thumbnail', 'excerpt', 'custom-fields'],
 			'menu_icon'    => 'dashicons-welcome-learn-more',
 		]);

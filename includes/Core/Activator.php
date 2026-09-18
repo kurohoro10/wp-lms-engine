@@ -4,10 +4,44 @@ namespace Feuernursingreview\Core;
 if (!defined('ABSPATH')) exit;
 
 class Activator {
+	const FLUSH_FLAG = 'fnr_flush_rewrite_rules';
+
 	public static function activate() {
 		self::create_tables();
 		self::register_roles();
+
+		/**
+		 * Do NOT call flush_rewrite_rules() here.
+		 *
+		 * On the activation request, WordPress fires 'init' - which is
+		 * where CourseCPT/LessonCPT/etc register - BEFORE it dispatches
+		 * to plugins.php and runs this activation callback. So at this
+		 * point in THIS request, none of the plugin's post types have
+		 * been registered yet, and flushing now bakes rewrite rules that
+		 * are missing fnr_course entirely. Every single course URL then
+		 * 404s until something flushes again.
+		 *
+		 * Instead, set a flag and let a later 'init' handler (registered
+		 * in the main plugin file, priority 20 - after CPT registration
+		 * at the default priority 10) do the actual flush, once, on the
+		 * next request where the post types actually exist.
+		 */
+		update_option(self::FLUSH_FLAG, 1);
+	}
+
+	/**
+	 * Hooked on init at priority 20. Runs once, on whichever request
+	 * follows activation - by then CourseCPT::register() etc have
+	 * already run earlier in the SAME init cycle at priority 10, so the
+	 * rules generated here are complete.
+	 */
+	public static function maybe_flush_rewrite_rules() {
+		if (!get_option(self::FLUSH_FLAG)) {
+			return;
+		}
+
 		flush_rewrite_rules();
+		delete_option(self::FLUSH_FLAG);
 	}
 
 	private static function create_tables() {

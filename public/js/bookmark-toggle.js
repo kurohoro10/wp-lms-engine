@@ -42,5 +42,5 @@
 			btn.disabled = false;
 			btn.removeAttribute('aria-busy');
 		}
-	})
-})
+	});
+})();
