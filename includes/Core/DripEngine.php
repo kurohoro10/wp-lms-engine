@@ -59,6 +59,7 @@ class DripEngine {
 	 * back to the parent course instead of rendering the lesson.
 	 */
 	public static function enforce_drip() {
+		$course_id = wp_get_post_parent_id($lesson_id);
 		if (!is_singular(LessonCPT::POST_TYPE) || !is_user_logged_in()) {
 			return;
 		}
@@ -67,8 +68,8 @@ class DripEngine {
 		$course_id = wp_get_post_parent_id($lesson_id);
 		$user_id   = get_current_user_id();
 
-		if (!$course_id) {
-			return; // orphaned lesson with no parent course - nothing to gate
+		if (!$course_id || get_post_status($course_id) === false) {
+			return; // orphaned lesson - nothing sensible to gate against
 		}
 
 		if (self::is_accessible($user_id, $course_id, $lesson_id)) {

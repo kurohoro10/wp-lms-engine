@@ -17,6 +17,7 @@ get_header();
 
 $lesson_id = get_the_ID();
 $course_id = wp_get_post_parent_id($lesson_id);
+$course_exists = $course_id && get_post_status($course_id) !== false;
 $user_id   = get_current_user_id();
 
 $is_completed = $user_id
@@ -25,7 +26,7 @@ $is_completed = $user_id
 ?>
 
 <main id="fnr-lesson" class="fnr-lesson" data-lesson-id="<?php echo esc_attr($lesson_id); ?>" data-course-id="<?php echo esc_attr($course_id); ?>" >
-	<?php if ($course_id): ?>
+	<?php if ($course_exists) : ?>
 		<p class="fnr-lesson-breadcrumb">
 			<a href="<?php echo esc_url(get_permalink($course_id)); ?>">
 				&larr; <?php echo esc_html(get_the_title($course_id)); ?>

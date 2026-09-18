@@ -35,6 +35,7 @@ add_action('init', ['Feuernursingreview\Core\Roles', 'maybe_grant_question_capab
 add_action('init', ['Feuernursingreview\CPT\Taxonomies', 'register']);
 add_action('init', ['Feuernursingreview\Core\DripEngine', 'register']);
 add_action('init', ['Feuernursingreview\Core\Modules', 'register']);
+add_action('init', ['Feuernursingreview\Core\CourseCascade', 'register']);
 add_action('init', ['Feuernursingreview\Frontend\Templates', 'register']);
 add_action('init', ['Feuernursingreview\Frontend\Assets', 'register']);
 add_action('init', ['Feuernursingreview\Frontend\StudentDashboard', 'register']);
@@ -63,6 +64,8 @@ add_action('admin_init', ['Feuernursingreview\Admin\LessonDripMetaBox', 'registe
 add_action('admin_init', ['Feuernursingreview\Admin\QuestionSchemaMetaBox', 'register']);
 add_action('admin_init', ['Feuernursingreview\Admin\LessonMediaMetaBox', 'register']);
 add_action('admin_init', ['Feuernursingreview\Admin\LessonCourseMetaBox', 'register']);
+add_action('admin_init', ['Feuernursingreview\Admin\LessonOrphanFilter', 'register']);
+add_action('admin_init', ['Feuernursingreview\Admin\LessonCourseColumn', 'register']);
 add_action('admin_init', ['Feuernursingreview\Admin\QuizCourseMetaBox', 'register']);
 add_action('admin_init', ['Feuernursingreview\Admin\CourseLessonOrderMetaBox', 'register']);
 add_action('admin_init', ['Feuernursingreview\Admin\ModuleCourseMetaBox', 'register']);
